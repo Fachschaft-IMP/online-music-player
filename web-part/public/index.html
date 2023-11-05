@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IMP Music Player</title>
+  <link rel="icon" href="/headphones.png" />
+  <style>
+    @keyframes gradient {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-size: 200% 200%;
+      background-image: 
+        linear-gradient(45deg, #FF0000, #00FF00, #0000FF, #FF00FF);
+      animation: gradient 10s ease infinite;
+      height: 100vh;
+      overflow: hidden;      
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      background-color: #333;
+      color: #fff;
+      padding: 10px 0;
+      text-align: center;
+    }
+    #songs {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      height: calc(80vh - 65px);
+      border: none;
+      padding: 20px;
+      margin: 10px;
+    }
+    .song {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      box-shadow: 0px 0px 15px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .song img {
+      width: 100px;
+      height: 100px;
+      margin-right: 20px;
+    }
+    .song-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .controls button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      border:none;
+      color:#fff;
+      background-color:#333; 
+    }
+    .controls button:active {
+      transform: scale(0.95);
+    }
+    input[type="text"] {
+        width: calc(100% - 22px);
+        padding: 10px; 
+        margin-bottom :10px; 
+        border-radius :3px; 
+        border :1px solid #ddd; 
+        font-size :16px; 
+        color :#333; 
+        outline :none; 
+    }
+    button#send{
+        display:block; 
+        width :100%; 
+        padding :10px; 
+        border :none; 
+        border-radius :3px; 
+        background-color :#333; 
+        color :#fff; 
+        cursor:pointer; 
+        font-size :18px; 
+    }
+    button#send:hover{
+        background-color:#444; 
+    }
+  </style>
+</head>
+<body>
+  <!-- <h1>Fachschaft IMP Music Player</h1> -->
+  <h2><div id="currently-playing">Currently playing: </div></h2>
+  <div class="controls">
+    <!-- <button id="start">Start Player</button> -->
+    <!-- <button id="exit">Exit Player</button> -->
+    <button id="pause">Pause/Play</button>
+    <button id="skip">Skip Song</button>
+  </div>
+  <input type="text" id="search" placeholder="Search for a song...">
+  <input type="text" id="youtubeLink" placeholder="Paste YouTube link here...">
+  <button id="send">Download the song</button>
+  <div id="songs"></div>
+  <script>
+    let songs = [];
+    fetch('/songs')
+      .then(response => response.json())
+      .then(data => {
+        songs = data;
+        displaySongs(data);
+      });
+document.getElementById('search').addEventListener('input', (e) => {
+  const searchTerm = e.target.value.toLowerCase();
+  const filteredSongs = songs.filter(song =>
+    song.title.toLowerCase().includes(searchTerm) ||
+    song.artist.toLowerCase().includes(searchTerm)
+  );
+  displaySongs(filteredSongs);
+});
+
+
+var input = document.getElementById("youtubeLink");
+
+// Execute a function when the user releases a key on the keyboard
+input.addEventListener("keydown", function(event) {
+  // Number 13 is the "Enter" key on the keyboard
+  if (event.keyCode === 13) {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("send").click();
+  }
+});
+
+
+document.getElementById('send').addEventListener('click', () => {
+  const youtubeLink = document.getElementById('youtubeLink').value;
+  fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'download', link: youtubeLink }) })
+	.then(() => {
+	  // Clear the text box
+	  document.getElementById('youtubeLink').value = '';
+	  // Refresh the song list
+	  fetch('/songs')
+		.then(response => response.json())
+		.then(data => {
+		  songs = data;
+		  displaySongs(data);
+		});
+	});
+});
+
+function updateCurrentlyPlaying() {
+  fetch('/currently-playing')
+    .then(response => response.text())
+    .then(title => {
+      document.getElementById('currently-playing').textContent = 'Currently playing: ' + title;
+    });
+}
+
+// Call this function every second to keep the currently playing title up-to-date
+setInterval(updateCurrentlyPlaying, 1000);
+
+
+function displaySongs(songs) {
+  const songsDiv = document.getElementById('songs');
+  songsDiv.innerHTML = '';
+  songs.forEach(song => {
+    const songDiv = document.createElement('div');
+    songDiv.className = 'song';
+    songDiv.innerHTML = `
+      <img src="${song.cover}" alt="${song.title}">
+      <div class="song-info">
+        <h2>${song.title}</h2>
+        <p>${song.artist}</p>
+        <p>${song.album}</p>
+      </div>
+      <button onclick="playSong('${song.file}')">Play</button>
+      <button onclick="addToQueue('${song.file}')">Add to Queue</button>
+    `;
+    songsDiv.appendChild(songDiv);
+  });
+}
+
+function playSong(file) {
+  const command = `"C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe" "C:\\Users\\Drucker\\Music\\${file}"`;
+  fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'play', command: command }) });
+}
+
+    function addToQueue(file) {
+      const command = `C:\\Users\\Drucker\\Music\\${file}`;
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'queue', command: command }) });
+    }
+
+    document.getElementById('start').addEventListener('click', () => {
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start' }) });
+    });
+    document.getElementById('exit').addEventListener('click', () => {
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'exit' }) });
+    });
+    document.getElementById('pause').addEventListener('click', () => {
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'pause' }) });
+    });
+    document.getElementById('skip').addEventListener('click', () => {
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'skip' }) });
+    });
+  </script>
+</body>
+</html>
