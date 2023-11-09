@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IMP Music Player</title>
+  <link rel="icon" href="/headphones.png" />
+  <style>
+    @keyframes gradient {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-size: 200% 200%;
+      background-image:
+        linear-gradient(45deg, #FF0000, #00FF00, #0000FF, #FF00FF);
+      animation: gradient 10s ease infinite;
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      background-color: #333;
+      color: #fff;
+      padding: 10px 0;
+      text-align: center;
+    }
+    #songs {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      height: calc(80vh - 65px);
+      border: none;
+      padding: 20px;
+      margin: 10px;
+    }
+    .song {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      box-shadow: 0px 0px 15px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .song img {
+      width: 100px;
+      height: 100px;
+      margin-right: 20px;
+    }
+    .song-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .controls button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      border:none;
+      color:#fff;
+      background-color:#333;
+    }
+    .controls button:active {
+      transform: scale(0.95);
+    }
+    input[type="text"] {
+        width: calc(100% - 22px);
+        padding: 10px;
+        margin-bottom :10px;
+        border-radius :3px;
+        border :1px solid #ddd;
+        font-size :16px;
+        color :#333;
+        outline :none;
+    }
+    button#send{
+        display:block;
+        width :100%;
+        padding :10px;
+        border :none;
+        border-radius :3px;
+        background-color :#333;
+        color :#fff;
+        cursor:pointer;
+        font-size :18px;
+    }
+    button#send:hover{
+        background-color:#444;
+    }
+
+    .content {
+  display: flex;
+  justify-content: space-between;
+}
+
+#songs, #queue {
+  width: 45%;
+}
+
+#queue {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: calc(80vh - 65px);
+  border: none;
+  padding: 20px;
+  margin: 10px;
+}
+
+  </style>
+</head>
+<body>
+   <!-- <h1>Fachschaft IMP Music Player</h1> -->
+  <h2><div id="currently-playing">Currently playing: </div></h2>
+  <div class="controls">
+    <label for="vol-control">Volume:</label>
+    <input type="range" id="vol-control" min="0" max="100" step="1" />
+  </div>
+  <div class="controls">
+   <button id="start">Start Player</button>
+   <button id="exit">Exit Player</button>
+    <button id="pause">Pause/Play</button>
+    <button id="skip">Skip Song</button>
+    <label for="playlist-select">Select a playlist:</label>
+    <select id="playlist-select"></select>
+  </div>
+<div class="controls">
+  <label for="new-playlist">Create a new playlist:</label>
+  <input type="text" id="new-playlist" placeholder="Playlist name">
+  <button id="create-playlist">Create</button>
+  <input type="text" id="youtubeLink" placeholder="Paste YouTube link here...">
+  <button id="send">Add to playlist</button>
+  <button id="refresh-queue">Refresh Queue</button>
+</div>
+
+  <input type="text" id="search" placeholder="Search for a song...">
+  <div class="content">
+    <div id="songs"></div>
+    <div id="queue"></div>
+  </div>
+  <script>
+    let songs = [];
+    fetch('/songs')
+      .then(response => response.json())
+      .then(data => {
+        songs = data;
+        displaySongs(data);
+      });
+
+document.getElementById('playlist-select').dispatchEvent(new Event('change'));
+
+document.getElementById('search').addEventListener('input', (e) => {
+  const searchTerm = e.target.value.toLowerCase();
+  const filteredSongs = songs.filter(song =>
+    song.title.toLowerCase().includes(searchTerm) ||
+    song.artist.toLowerCase().includes(searchTerm)
+  );
+  displaySongs(filteredSongs);
+});
+
+
+document.getElementById('refresh-queue').addEventListener('click', () => {
+  fetch('/queue')
+    .then(response => response.json())
+    .then(songs => {
+      const queueDiv = document.getElementById('queue');
+      queueDiv.innerHTML = '';
+      songs.forEach(song => {
+        const songDiv = document.createElement('div');
+        songDiv.className = 'song';
+        songDiv.innerHTML = `
+          <img src="${song.cover}" alt="${song.title}">
+          <div class="song-info">
+            <h2>${song.title}</h2>
+          </div>
+        `;
+        queueDiv.appendChild(songDiv);
+      });
+    });
+});
+
+  document.addEventListener('DOMContentLoaded', (event) => {
+    // Specify the default playlist name
+    const defaultPlaylist = 'default';
+    fetch(`/songs?playlist=${defaultPlaylist}`)
+      .then(response => response.json())
+      .then(data => {
+        songs = data;
+        displaySongs(data);
+      });
+  });
+
+
+    fetch('/queue')
+    .then(response => response.json())
+    .then(songs => {
+      const queueDiv = document.getElementById('queue');
+      queueDiv.innerHTML = '';
+      songs.forEach(song => {
+        const songDiv = document.createElement('div');
+        songDiv.className = 'song';
+        songDiv.innerHTML = `
+          <img src="${song.cover}" alt="${song.title}">
+          <div class="song-info">
+            <h2>${song.title}</h2>
+          </div>
+        `;
+        queueDiv.appendChild(songDiv);
+      });
+    });
+
+var input = document.getElementById("youtubeLink");
+
+// Execute a function when the user releases a key on the keyboard
+input.addEventListener("keydown", function(event) {
+  // Number 13 is the "Enter" key on the keyboard
+  if (event.keyCode === 13) {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    document.getElementById("send").click();
+  }
+});
+
+document.getElementById('vol-control').addEventListener('input', (e) => {
+  const volume = e.target.value;
+  fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'set-volume', volume }) })
+    .catch(err => console.error(`Failed to set volume: ${err.message}`));
+});
+
+// Get the select element
+const playlistSelect = document.getElementById('playlist-select');
+
+document.getElementById('send').addEventListener('click', () => {
+  const youtubeLink = document.getElementById('youtubeLink').value;
+  // Get the currently selected playlist
+  const selectedPlaylist = playlistSelect.value;
+  // Clear the text box immediately after the button is clicked
+  document.getElementById('youtubeLink').value = '';
+  fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'download', link: youtubeLink, playlist: selectedPlaylist }) })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      // Add a delay before refreshing the song list
+      setTimeout(() => {
+        fetch('/songs')
+          .then(response => response.json())
+          .then(data => {
+            songs = data;
+            displaySongs(data);
+          });
+      }, 5000); // Delay of 2 seconds
+    })
+    .catch(e => {
+      console.error('There was a problem with the fetch operation: ' + e.message);
+    });
+});
+
+
+document.getElementById('create-playlist').addEventListener('click', () => {
+  const playlistName = document.getElementById('new-playlist').value;
+  fetch('/create-playlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: playlistName }) })
+    .then(() => {
+      // Clear the text box
+      document.getElementById('new-playlist').value = '';
+      // Refresh the playlist list
+      updatePlaylists();
+    });
+});
+
+document.getElementById('playlist-select').addEventListener('change', (e) => {
+  const playlistName = e.target.value;
+  fetch(`/songs?playlist=${playlistName}`)
+    .then(response => response.json())
+    .then(data => {
+      songs = data;
+      displaySongs(data);
+    });
+});
+
+
+
+function updateCurrentlyPlaying() {
+  fetch('/currently-playing')
+    .then(response => response.text())
+    .then(title => {
+      document.getElementById('currently-playing').textContent = 'Currently playing: ' + title;
+    });
+}
+
+// Call this function every second to keep the currently playing title up-to-date
+setInterval(updateCurrentlyPlaying, 1000);
+
+
+function updatePlaylists() {
+  fetch('/playlists')
+    .then(response => response.json())
+    .then(playlists => {
+      const select = document.getElementById('playlist-select');
+      select.innerHTML = '';
+      playlists.forEach(playlist => {
+        const option = document.createElement('option');
+        option.value = playlist;
+        option.textContent = playlist;
+        select.appendChild(option);
+      });
+    });
+}
+
+updatePlaylists();
+
+  // Fetch the current volume level from the server and update the slider value every 5 seconds
+  setInterval(() => {
+    fetch('/volume')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('vol-control').value = data.volume;
+      });
+  }, 5000);
+
+
+
+function displaySongs(songs) {
+  const songsDiv = document.getElementById('songs');
+  songsDiv.innerHTML = '';
+  songs.forEach(song => {
+    const songDiv = document.createElement('div');
+    songDiv.className = 'song';
+    songDiv.innerHTML = `
+      <img src="${song.cover}" alt="${song.title}">
+      <div class="song-info">
+        <h2>${song.title}</h2>
+        <p>${song.artist}</p>
+        <p>${song.album}</p>
+      </div>
+      <button onclick="playSong('${song.file}')">Play</button>
+      <button onclick="addToQueue('${song.file}')">Add to Queue</button>
+    `;
+    songsDiv.appendChild(songDiv);
+  });
+}
+
+function playSong(file) {
+  const playlist = document.getElementById('playlist-select').value;
+  const command = `"C:\\Program Files\\DAUM\\PotPlayer\\PotPlayerMini64.exe" "C:\\Users\\Drucker\\Music\\${playlist}\\${file}"`;
+  fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'play', command: command }) });
+}
+
+function addToQueue(file) {
+  const playlist = document.getElementById('playlist-select').value;
+  const command = `C:\\Users\\Drucker\\Music\\${playlist}\\${file}`;
+  fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'queue', command: command }) });
+      fetch('/queue')
+    .then(response => response.json())
+    .then(songs => {
+      const queueDiv = document.getElementById('queue');
+      queueDiv.innerHTML = '';
+      songs.forEach(song => {
+        const songDiv = document.createElement('div');
+        songDiv.className = 'song';
+        songDiv.innerHTML = `
+          <img src="${song.cover}" alt="${song.title}">
+          <div class="song-info">
+            <h2>${song.title}</h2>
+          </div>
+        `;
+        queueDiv.appendChild(songDiv);
+      });
+    });
+}
+
+
+    document.getElementById('start').addEventListener('click', () => {
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start' }) });
+    });
+    document.getElementById('exit').addEventListener('click', () => {
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'exit' }) });
+    });
+    document.getElementById('pause').addEventListener('click', () => {
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'pause' }) });
+    });
+    document.getElementById('skip').addEventListener('click', () => {
+      fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'skip' }) });
+    });
+  </script>
+</body>
+</html>
